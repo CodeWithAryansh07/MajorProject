@@ -15,6 +15,7 @@ interface EditorTab {
   name: string;
   language: string;
   isDirty: boolean;
+  isLoading?: boolean; // Optional loading state
 }
 
 interface MultiFileEditorProps {
@@ -49,6 +50,17 @@ export default function MultiFileEditor({ selectedFileId, onFileClose }: MultiFi
       setActiveTabId(fileId);
       return;
     }
+    
+    // Optimistic update: Create tab immediately with loading state
+    const optimisticTab: EditorTab = {
+      fileId,
+      name: "Loading...", // Placeholder name
+      language: "javascript", // Default language
+      isDirty: false,
+      isLoading: true, // Add loading flag
+    };
+    
+    setTabs(prevTabs => [...prevTabs, optimisticTab]);
     setActiveTabId(fileId);
   }, [tabs]);
 
@@ -111,6 +123,7 @@ export default function MultiFileEditor({ selectedFileId, onFileClose }: MultiFi
     if (activeFile && activeTabId) {
       const existingTab = tabs.find(tab => tab.fileId === activeTabId);
       if (!existingTab) {
+        // This shouldn't happen with optimistic updates, but keep as fallback
         const newTab: EditorTab = {
           fileId: activeTabId,
           name: activeFile.name,
@@ -118,6 +131,20 @@ export default function MultiFileEditor({ selectedFileId, onFileClose }: MultiFi
           isDirty: false,
         };
         setTabs(prevTabs => [...prevTabs, newTab]);
+      } else if (existingTab.isLoading) {
+        // Update the optimistic tab with real data
+        setTabs(prevTabs => 
+          prevTabs.map(tab => 
+            tab.fileId === activeTabId 
+              ? { 
+                  ...tab, 
+                  name: activeFile.name, 
+                  language: activeFile.language,
+                  isLoading: false 
+                }
+              : tab
+          )
+        );
       }
     }
   }, [activeFile, activeTabId, tabs]);
@@ -296,8 +323,17 @@ export default function MultiFileEditor({ selectedFileId, onFileClose }: MultiFi
               >
                 <FileIcon className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate text-sm">
-                  {tab.name}
-                  {tab.isDirty && <span className="text-orange-400">*</span>}
+                  {tab.isLoading ? (
+                    <span className="flex items-center gap-1">
+                      <span className="animate-spin w-3 h-3 border border-blue-500 border-t-transparent rounded-full"></span>
+                      Loading...
+                    </span>
+                  ) : (
+                    <>
+                      {tab.name}
+                      {tab.isDirty && <span className="text-orange-400">*</span>}
+                    </>
+                  )}
                 </span>
                 <button
                   onClick={(e) => closeTab(tab.fileId, e)}
