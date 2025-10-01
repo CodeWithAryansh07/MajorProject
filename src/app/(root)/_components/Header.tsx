@@ -8,6 +8,7 @@ import ThemeSelector from "./ThemeSelector";
 import LanguageSelector from "./LanguageSelector";
 import RunButton from "./RunButton";
 import HeaderProfileBtn from "./HeaderProfileBtn";
+import CollaborationIntegration from "../../../components/collaboration/CollaborationIntegration";
 
 async function Header() {
 
@@ -114,6 +115,7 @@ async function Header() {
                     )}
 
                     <SignedIn>
+                        <CollaborationIntegration />
                         <RunButton />
                     </SignedIn>
 

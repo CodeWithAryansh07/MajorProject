@@ -182,26 +182,32 @@ export const updateSessionCode = mutation({
       throw new Error("Permission denied");
     }
 
-    // Update session code
-    await ctx.db.patch(sessionId, {
-      code,
-      lastActivity: Date.now(),
-    });
-
-    // Log the operation for potential conflict resolution
-    if (operation) {
-      await ctx.db.insert("codeOperations", {
-        sessionId,
-        userId,
-        operation,
-        timestamp: Date.now(),
+    // Only update if the code has actually changed to prevent unnecessary updates
+    if (session.code !== code) {
+      // Update session code
+      await ctx.db.patch(sessionId, {
+        code,
+        lastActivity: Date.now(),
       });
+
+      // Log the operation for potential conflict resolution
+      if (operation) {
+        await ctx.db.insert("codeOperations", {
+          sessionId,
+          userId,
+          operation,
+          timestamp: Date.now(),
+        });
+      }
     }
 
-    // Update participant last active
-    await ctx.db.patch(participant._id, {
-      lastActive: Date.now(),
-    });
+    // Update participant last active (but less frequently to reduce writes)
+    const now = Date.now();
+    if (now - participant.lastActive > 5000) { // Only update every 5 seconds
+      await ctx.db.patch(participant._id, {
+        lastActive: now,
+      });
+    }
 
     return { success: true };
   },
@@ -392,6 +398,33 @@ export const updateUserPermission = mutation({
     await ctx.db.patch(participant._id, {
       permission: newPermission,
     });
+
+    return { success: true };
+  },
+});
+
+// Heartbeat to keep participant active
+export const participantHeartbeat = mutation({
+  args: {
+    sessionId: v.id("collaborativeSessions"),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { sessionId, userId } = args;
+
+    const participant = await ctx.db
+      .query("sessionParticipants")
+      .withIndex("by_session_and_user", (q) => 
+        q.eq("sessionId", sessionId).eq("userId", userId)
+      )
+      .first();
+
+    if (participant) {
+      await ctx.db.patch(participant._id, {
+        lastActive: Date.now(),
+        isActive: true,
+      });
+    }
 
     return { success: true };
   },
