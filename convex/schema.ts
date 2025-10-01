@@ -42,4 +42,84 @@ export default defineSchema({
         .index("by_user_id", ["userId"])
         .index("by_snippet_id", ["snippetId"])
         .index("by_user_id_and_snippet_id", ["userId", "snippetId"]),
+
+    // File System Tables
+    folders: defineTable({
+        userId: v.string(),
+        name: v.string(),
+        parentFolderId: v.optional(v.id("folders")),
+        isShared: v.boolean(),
+        createdAt: v.number(),
+        path: v.string(), // full path like "/DSA Practice/Arrays"
+    })
+        .index("by_user_id", ["userId"])
+        .index("by_parent_folder", ["parentFolderId"]),
+
+    practiceFiles: defineTable({
+        userId: v.string(),
+        folderId: v.optional(v.id("folders")),
+        name: v.string(),
+        language: v.string(),
+        code: v.string(),
+        description: v.optional(v.string()),
+        isShared: v.boolean(),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+        path: v.string(), // full file path
+    })
+        .index("by_user_id", ["userId"])
+        .index("by_folder_id", ["folderId"])
+        .index("by_user_and_folder", ["userId", "folderId"]),
+
+    // Collaboration Tables
+    collaborativeSessions: defineTable({
+        name: v.string(),
+        creatorId: v.string(),
+        language: v.string(),
+        code: v.string(),
+        isPublic: v.boolean(),
+        isActive: v.boolean(),
+        activeUsers: v.array(v.string()),
+        maxUsers: v.number(),
+        createdAt: v.number(),
+        lastActivity: v.number(),
+    })
+        .index("by_creator_id", ["creatorId"])
+        .index("by_is_public", ["isPublic"])
+        .index("by_is_active", ["isActive"]),
+
+    sessionParticipants: defineTable({
+        sessionId: v.id("collaborativeSessions"),
+        userId: v.string(),
+        userName: v.string(),
+        permission: v.union(v.literal("read"), v.literal("write")),
+        joinedAt: v.number(),
+        lastActive: v.number(),
+        isActive: v.boolean(),
+    })
+        .index("by_session_id", ["sessionId"])
+        .index("by_user_id", ["userId"])
+        .index("by_session_and_user", ["sessionId", "userId"]),
+
+    // Real-time code operations for collaboration
+    codeOperations: defineTable({
+        sessionId: v.id("collaborativeSessions"),
+        userId: v.string(),
+        operation: v.object({
+            type: v.string(), // "insert", "delete", "replace"
+            position: v.number(),
+            content: v.string(),
+            length: v.optional(v.number()),
+        }),
+        timestamp: v.number(),
+    }).index("by_session_id", ["sessionId"]),
+
+    // Session chat messages
+    sessionMessages: defineTable({
+        sessionId: v.id("collaborativeSessions"),
+        userId: v.string(),
+        userName: v.string(),
+        message: v.string(),
+        timestamp: v.number(),
+    }).index("by_session_id", ["sessionId"]),
 });
