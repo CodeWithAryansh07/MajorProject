@@ -78,12 +78,22 @@ export default function FileTree({ onFileSelect, selectedFileId, onSearchOpen, o
     const handleCreateFolder = async (parentId?: Id<"folders">) => {
         if (!user?.id) return;
 
+        // Auto-expand the parent folder if creating inside it
+        if (parentId && !expandedFolders.has(parentId)) {
+            setExpandedFolders(prev => new Set([...prev, parentId]));
+        }
+
         setCreatingItem({ type: 'folder', parentId });
         setContextMenu(null);
     };
 
     const handleCreateFile = async (folderId?: Id<"folders">) => {
         if (!user?.id) return;
+
+        // Auto-expand the target folder if creating inside it
+        if (folderId && !expandedFolders.has(folderId)) {
+            setExpandedFolders(prev => new Set([...prev, folderId]));
+        }
 
         setCreatingItem({ type: 'file', parentId: folderId });
         setContextMenu(null);

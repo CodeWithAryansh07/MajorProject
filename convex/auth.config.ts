@@ -1,8 +1,8 @@
 export default {
-    providers: [
-      {
-        domain: "https://sweet-katydid-85.clerk.accounts.dev",
-        applicationID: "convex",
-      },
-    ],
-  };
+  providers: [
+    {
+      domain: "https://decent-lemur-48.clerk.accounts.dev/",
+      applicationID: "convex",
+    },
+  ],
+};
