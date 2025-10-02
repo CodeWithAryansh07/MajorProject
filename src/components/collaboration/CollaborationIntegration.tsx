@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
-import { Users, Share2, UserPlus } from 'lucide-react';
+import { Users, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 
 interface CollaborationIntegrationProps {
@@ -61,16 +61,6 @@ export default function CollaborationIntegration({
           <Users className="w-4 h-4" />
           <span className="hidden sm:inline">Collaborate</span>
         </button>
-
-        {/* Go to Collaboration Hub */}
-        <Link
-          href="/collaboration"
-          className="flex items-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors text-sm"
-          title="Go to collaboration hub"
-        >
-          <Share2 className="w-4 h-4" />
-          <span className="hidden sm:inline">Hub</span>
-        </Link>
       </div>
 
       {/* Create Session Modal */}
