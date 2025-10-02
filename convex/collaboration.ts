@@ -20,7 +20,7 @@ export const createSession = mutation({
     maxUsers: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { name, creatorId, language, code, isPublic, maxUsers = 10 } = args;
+    const { name, creatorId, language, code, isPublic, maxUsers = 5 } = args;
     const now = Date.now();
     const sessionKey = generateSessionKey();
 

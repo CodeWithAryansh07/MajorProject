@@ -29,17 +29,17 @@ export default function CollaborationIntegration({
 
     setIsCreating(true);
     try {
-      const sessionId = await createSession({
+      const result = await createSession({
         name: `${fileName} - Collaborative Session`,
         creatorId: user.id,
         language: currentLanguage,
         code: currentCode,
         isPublic,
-        maxUsers: 10,
+        maxUsers: 5, // Updated to maximum of 5 users
       });
 
-      // Redirect to collaboration page with the new session
-      window.open(`/collaboration?session=${sessionId}`, '_blank');
+      // Redirect to collaboration page with the new session using sessionKey
+      window.open(`/collaboration/${result.sessionKey}`, '_blank');
       setShowModal(false);
     } catch (error) {
       console.error('Failed to create session:', error);

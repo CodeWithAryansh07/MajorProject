@@ -146,9 +146,9 @@ export default function SessionPage() {
   return (
     <div className="h-screen bg-[#1e1e1e]">
       {/* Debug info bar (remove in production) */}
-      <div className="bg-green-600 text-white px-4 py-1 text-xs">
+      {/* <div className="bg-green-600 text-white px-4 py-1 text-xs">
         Session: {session.name} | Key: {sessionId} | Creator: {session.creatorId} | Public: {session.isPublic ? 'Yes' : 'No'}
-      </div>
+      </div> */}
       
       <div className="h-[calc(100vh-2rem)]">
         <CollaborativeEditor

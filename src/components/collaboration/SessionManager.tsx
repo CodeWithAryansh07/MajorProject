@@ -64,7 +64,7 @@ export default function SessionManager({ onSessionSelect }: SessionManagerProps)
     const name = formData.get('name') as string;
     const language = formData.get('language') as string;
     const isPublic = formData.get('isPublic') === 'on';
-    const maxUsers = parseInt(formData.get('maxUsers') as string) || 10;
+    const maxUsers = parseInt(formData.get('maxUsers') as string) || 3;
 
     try {
       const result = await createSession({
@@ -298,14 +298,16 @@ export default function SessionManager({ onSessionSelect }: SessionManagerProps)
                 <label className="block text-sm font-medium text-gray-300 mb-1">
                   Max Users
                 </label>
-                <input
-                  type="number"
+                <select
                   name="maxUsers"
-                  min="2"
-                  max="20"
-                  defaultValue="10"
+                  defaultValue="3"
                   className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#555] rounded-md text-white focus:outline-none focus:border-[#007acc]"
-                />
+                >
+                  <option value="2">2 users</option>
+                  <option value="3">3 users</option>
+                  <option value="4">4 users</option>
+                  <option value="5">5 users</option>
+                </select>
               </div>
 
               <div className="flex items-center">
