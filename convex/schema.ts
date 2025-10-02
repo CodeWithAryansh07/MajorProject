@@ -75,6 +75,7 @@ export default defineSchema({
     collaborativeSessions: defineTable({
         name: v.string(),
         creatorId: v.string(),
+        sessionKey: v.string(), // URL-friendly unique identifier
         language: v.string(),
         code: v.string(),
         isPublic: v.boolean(),
@@ -83,10 +84,15 @@ export default defineSchema({
         maxUsers: v.number(),
         createdAt: v.number(),
         lastActivity: v.number(),
+        status: v.optional(v.union(v.literal("active"), v.literal("inactive"), v.literal("scheduled_for_deletion"))),
+        expiresAt: v.optional(v.number()),
     })
         .index("by_creator_id", ["creatorId"])
         .index("by_is_public", ["isPublic"])
-        .index("by_is_active", ["isActive"]),
+        .index("by_is_active", ["isActive"])
+        .index("by_status", ["status"])
+        .index("by_expires_at", ["expiresAt"])
+        .index("by_session_key", ["sessionKey"]),
 
     sessionParticipants: defineTable({
         sessionId: v.id("collaborativeSessions"),
@@ -96,10 +102,13 @@ export default defineSchema({
         joinedAt: v.number(),
         lastActive: v.number(),
         isActive: v.boolean(),
+        lastSeen: v.optional(v.number()), // Make this optional too for existing records
     })
         .index("by_session_id", ["sessionId"])
         .index("by_user_id", ["userId"])
-        .index("by_session_and_user", ["sessionId", "userId"]),
+        .index("by_session_and_user", ["sessionId", "userId"])
+        .index("by_last_active", ["lastActive"])
+        .index("by_is_active", ["isActive"]),
 
     // Real-time code operations for collaboration
     codeOperations: defineTable({

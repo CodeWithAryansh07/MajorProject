@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 interface SessionManagerProps {
-  onSessionSelect: (sessionId: Id<"collaborativeSessions">) => void;
+  onSessionSelect: (sessionKey: string) => void;
 }
 
 export default function SessionManager({ onSessionSelect }: SessionManagerProps) {
@@ -38,6 +38,22 @@ export default function SessionManager({ onSessionSelect }: SessionManagerProps)
     { limit: 20 }
   );
 
+  // Get participant counts for real-time updates
+  const userSessionIds = userSessions?.map(s => s._id).filter(Boolean) || [];
+  const publicSessionIds = publicSessions?.map(s => s._id).filter(Boolean) || [];
+  const allSessionIds = [...userSessionIds, ...publicSessionIds];
+  
+  const participantCounts = useQuery(
+    api.collaboration.getSessionParticipantCounts,
+    allSessionIds.length > 0 ? { sessionIds: allSessionIds } : "skip"
+  );
+
+  // Create a map for quick lookup of participant counts
+  const participantCountMap = participantCounts?.reduce((acc, item) => {
+    acc[item.sessionId] = item.participantCount;
+    return acc;
+  }, {} as Record<string, number>) || {};
+
   // Mutations
   const createSession = useMutation(api.collaboration.createSession);
   const joinSession = useMutation(api.collaboration.joinSession);
@@ -51,7 +67,7 @@ export default function SessionManager({ onSessionSelect }: SessionManagerProps)
     const maxUsers = parseInt(formData.get('maxUsers') as string) || 10;
 
     try {
-      const sessionId = await createSession({
+      const result = await createSession({
         name,
         creatorId: user.id,
         language,
@@ -60,23 +76,24 @@ export default function SessionManager({ onSessionSelect }: SessionManagerProps)
       });
 
       setShowCreateForm(false);
-      onSessionSelect(sessionId);
+      // Navigate to the session using sessionKey
+      onSessionSelect(result.sessionKey);
     } catch (error) {
       console.error('Failed to create session:', error);
       alert('Failed to create session. Please try again.');
     }
   };
 
-  const handleJoinSession = async (sessionId: Id<"collaborativeSessions">) => {
+  const handleJoinSession = async (session: { _id: Id<"collaborativeSessions">; sessionKey: string }) => {
     if (!user?.id) return;
 
     try {
       await joinSession({
-        sessionId,
+        sessionId: session._id,
         userId: user.id,
       });
 
-      onSessionSelect(sessionId);
+      onSessionSelect(session.sessionKey);
     } catch (error) {
       console.error('Failed to join session:', error);
       alert('Failed to join session. Please try again.');
@@ -152,7 +169,7 @@ export default function SessionManager({ onSessionSelect }: SessionManagerProps)
                 {userSessions?.filter((session): session is NonNullable<typeof session> => session !== null).map((session) => (
                   <div
                     key={session._id}
-                    onClick={() => onSessionSelect(session._id)}
+                    onClick={() => onSessionSelect(session.sessionKey)}
                     className="p-3 rounded-lg border border-[#333] hover:border-[#007acc] cursor-pointer transition-colors bg-[#252526]"
                   >
                     <div className="flex items-start justify-between mb-2">
@@ -166,7 +183,7 @@ export default function SessionManager({ onSessionSelect }: SessionManagerProps)
                           <LockIcon className="w-3 h-3 text-gray-400" />
                         )}
                         <span className="text-xs text-gray-400">
-                          {session.activeUsers.length}/{session.maxUsers}
+                          {participantCountMap[session._id] ?? session.participantCount ?? 0}/{session.maxUsers}
                         </span>
                       </div>
                     </div>
@@ -177,7 +194,7 @@ export default function SessionManager({ onSessionSelect }: SessionManagerProps)
                       </span>
                       <div className="flex items-center space-x-1">
                         <ClockIcon className="w-3 h-3" />
-                        <span>{formatTimeAgo(session.lastActivity)}</span>
+                        <span>{formatTimeAgo(session.createdAt)}</span>
                       </div>
                     </div>
                   </div>
@@ -198,7 +215,7 @@ export default function SessionManager({ onSessionSelect }: SessionManagerProps)
                 {publicSessions?.map((session) => (
                   <div
                     key={session._id}
-                    onClick={() => handleJoinSession(session._id)}
+                    onClick={() => handleJoinSession(session)}
                     className="p-3 rounded-lg border border-[#333] hover:border-[#007acc] cursor-pointer transition-colors bg-[#252526]"
                   >
                     <div className="flex items-start justify-between mb-2">
@@ -208,7 +225,7 @@ export default function SessionManager({ onSessionSelect }: SessionManagerProps)
                       <div className="flex items-center space-x-1 ml-2">
                         <UsersIcon className="w-3 h-3 text-blue-400" />
                         <span className="text-xs text-gray-400">
-                          {session.participantCount}/{session.maxUsers}
+                          {participantCountMap[session._id] ?? session.participantCount ?? 0}/{session.maxUsers}
                         </span>
                       </div>
                     </div>
@@ -219,7 +236,7 @@ export default function SessionManager({ onSessionSelect }: SessionManagerProps)
                       </span>
                       <div className="flex items-center space-x-1">
                         <ClockIcon className="w-3 h-3" />
-                        <span>{formatTimeAgo(session.lastActivity)}</span>
+                        <span>{formatTimeAgo(session.createdAt)}</span>
                       </div>
                     </div>
                   </div>

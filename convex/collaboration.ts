@@ -1,6 +1,14 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
+// Generate a unique session key for URL routing
+function generateSessionKey(): string {
+  const timestamp = Date.now().toString(36);
+  const random1 = Math.random().toString(36).substring(2, 8);
+  const random2 = Math.random().toString(36).substring(2, 6);
+  return `${timestamp}${random1}${random2}`.toLowerCase();
+}
+
 // Create a collaborative session
 export const createSession = mutation({
   args: {
@@ -13,18 +21,22 @@ export const createSession = mutation({
   },
   handler: async (ctx, args) => {
     const { name, creatorId, language, code, isPublic, maxUsers = 10 } = args;
+    const now = Date.now();
+    const sessionKey = generateSessionKey();
 
     const sessionId = await ctx.db.insert("collaborativeSessions", {
       name,
       creatorId,
+      sessionKey,
       language,
       code: code || getDefaultCodeForLanguage(language),
       isPublic,
       isActive: true,
       activeUsers: [creatorId],
       maxUsers,
-      createdAt: Date.now(),
-      lastActivity: Date.now(),
+      createdAt: now,
+      lastActivity: now,
+      status: "active",
     });
 
     // Add creator as participant
@@ -33,12 +45,13 @@ export const createSession = mutation({
       userId: creatorId,
       userName: await getUserName(ctx, creatorId),
       permission: "write",
-      joinedAt: Date.now(),
-      lastActive: Date.now(),
+      joinedAt: now,
+      lastActive: now,
+      lastSeen: now,
       isActive: true,
     });
 
-    return sessionId;
+    return { sessionId, sessionKey };
   },
 });
 
@@ -56,11 +69,18 @@ export const joinSession = mutation({
       throw new Error("Session not found");
     }
 
-    if (!session.isActive) {
-      throw new Error("Session is no longer active");
+    // Allow joining inactive sessions - they will be reactivated
+    if (session.status === "scheduled_for_deletion" || !session.isActive) {
+      // Reactivate the session
+      await ctx.db.patch(sessionId, {
+        status: "active",
+        isActive: true,
+        expiresAt: undefined,
+        lastActivity: Date.now(),
+      });
     }
 
-    if (session.activeUsers.length >= session.maxUsers) {
+    if (session.activeUsers.length >= session.maxUsers && !session.activeUsers.includes(userId)) {
       throw new Error("Session is full");
     }
 
@@ -77,6 +97,7 @@ export const joinSession = mutation({
       await ctx.db.patch(existingParticipant._id, {
         isActive: true,
         lastActive: Date.now(),
+        lastSeen: Date.now(),
       });
     } else {
       // Add new participant
@@ -87,6 +108,7 @@ export const joinSession = mutation({
         permission: "write", // Default permission
         joinedAt: Date.now(),
         lastActive: Date.now(),
+        lastSeen: Date.now(),
         isActive: true,
       });
     }
@@ -128,6 +150,7 @@ export const leaveSession = mutation({
       await ctx.db.patch(participant._id, {
         isActive: false,
         lastActive: Date.now(),
+        lastSeen: Date.now(),
       });
     }
 
@@ -138,10 +161,25 @@ export const leaveSession = mutation({
       lastActivity: Date.now(),
     });
 
-    // If no active users left, deactivate session
-    if (updatedActiveUsers.length === 0) {
+    // Check if any users are still active and update session status accordingly
+    const now = Date.now();
+    const INACTIVE_THRESHOLD = 5 * 60 * 1000; // 5 minutes
+    
+    const allParticipants = await ctx.db
+      .query("sessionParticipants")
+      .withIndex("by_session_id", (q) => q.eq("sessionId", sessionId))
+      .collect();
+    
+    const activeParticipants = allParticipants.filter(
+      p => p.isActive && (p.lastSeen ? now - p.lastSeen <= INACTIVE_THRESHOLD : now - p.lastActive <= INACTIVE_THRESHOLD)
+    );
+
+    // If no active users left, schedule session for deletion
+    if (activeParticipants.length === 0) {
       await ctx.db.patch(sessionId, {
+        status: "scheduled_for_deletion",
         isActive: false,
+        expiresAt: now + (60 * 60 * 1000), // 1 hour from now
       });
     }
 
@@ -213,6 +251,34 @@ export const updateSessionCode = mutation({
   },
 });
 
+// Get session by sessionKey (for URL routing)
+export const getSessionByKey = query({
+  args: {
+    sessionKey: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const session = await ctx.db
+      .query("collaborativeSessions")
+      .withIndex("by_session_key", (q) => q.eq("sessionKey", args.sessionKey))
+      .first();
+
+    if (!session) {
+      return null;
+    }
+
+    const participants = await ctx.db
+      .query("sessionParticipants")
+      .withIndex("by_session_id", (q) => q.eq("sessionId", session._id))
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
+
+    return {
+      ...session,
+      participants,
+    };
+  },
+});
+
 // Get session details
 export const getSession = query({
   args: {
@@ -265,7 +331,23 @@ export const getUserSessions = query({
       ...joinedSessions.filter(Boolean).filter(s => s!.creatorId !== args.userId)
     ].filter(Boolean);
 
-    return allSessions.sort((a, b) => b!.lastActivity - a!.lastActivity);
+    // Add participant counts to all sessions (same as getPublicSessions)
+    const sessionsWithParticipants = await Promise.all(
+      allSessions.map(async (session) => {
+        const participants = await ctx.db
+          .query("sessionParticipants")
+          .withIndex("by_session_id", (q) => q.eq("sessionId", session!._id))
+          .filter((q) => q.eq(q.field("isActive"), true))
+          .collect();
+
+        return {
+          ...session!,
+          participantCount: participants.length,
+        };
+      })
+    );
+
+    return sessionsWithParticipants.sort((a, b) => b.lastActivity - a.lastActivity);
   },
 });
 
@@ -280,7 +362,7 @@ export const getPublicSessions = query({
     const publicSessions = await ctx.db
       .query("collaborativeSessions")
       .withIndex("by_is_public", (q) => q.eq("isPublic", true))
-      .filter((q) => q.eq(q.field("isActive"), true))
+      .filter((q) => q.neq(q.field("status"), "scheduled_for_deletion"))
       .collect();
 
     const sessionsWithParticipants = await Promise.all(
@@ -298,9 +380,39 @@ export const getPublicSessions = query({
       })
     );
 
-    return sessionsWithParticipants
+    // Show sessions that are either active or have participants (not yet expired)
+    const visibleSessions = sessionsWithParticipants.filter(session => 
+      session.isActive || session.participantCount > 0
+    );
+
+    return visibleSessions
       .sort((a, b) => b.lastActivity - a.lastActivity)
       .slice(0, limit);
+  },
+});
+
+// Get session participant counts (for real-time updates)
+export const getSessionParticipantCounts = query({
+  args: {
+    sessionIds: v.array(v.id("collaborativeSessions")),
+  },
+  handler: async (ctx, args) => {
+    const counts = await Promise.all(
+      args.sessionIds.map(async (sessionId) => {
+        const participants = await ctx.db
+          .query("sessionParticipants")
+          .withIndex("by_session_id", (q) => q.eq("sessionId", sessionId))
+          .filter((q) => q.eq(q.field("isActive"), true))
+          .collect();
+
+        return {
+          sessionId,
+          participantCount: participants.length,
+        };
+      })
+    );
+
+    return counts;
   },
 });
 
@@ -411,6 +523,7 @@ export const participantHeartbeat = mutation({
   },
   handler: async (ctx, args) => {
     const { sessionId, userId } = args;
+    const now = Date.now();
 
     const participant = await ctx.db
       .query("sessionParticipants")
@@ -421,9 +534,25 @@ export const participantHeartbeat = mutation({
 
     if (participant) {
       await ctx.db.patch(participant._id, {
-        lastActive: Date.now(),
+        lastActive: now,
+        lastSeen: now,
         isActive: true,
       });
+
+      // Update session activity
+      await ctx.db.patch(sessionId, {
+        lastActivity: now,
+      });
+
+      // If session was scheduled for deletion, reactivate it
+      const session = await ctx.db.get(sessionId);
+      if (session && session.status === "scheduled_for_deletion") {
+        await ctx.db.patch(sessionId, {
+          status: "active",
+          isActive: true,
+          expiresAt: undefined,
+        });
+      }
     }
 
     return { success: true };

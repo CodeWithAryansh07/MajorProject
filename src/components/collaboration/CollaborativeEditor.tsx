@@ -6,6 +6,7 @@ import { useUser } from '@clerk/nextjs';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
 import { Editor } from '@monaco-editor/react';
+import { defineMonacoThemes } from '../../app/(root)/_constants';
 import {
   UsersIcon,
   MessageSquareIcon,
@@ -67,7 +68,6 @@ export default function CollaborativeEditor({ sessionId, onLeaveSession }: Colla
   const updateSessionCode = useMutation(api.collaboration.updateSessionCode);
   const leaveSession = useMutation(api.collaboration.leaveSession);
   const sendChatMessage = useMutation(api.collaboration.sendChatMessage);
-  const participantHeartbeat = useMutation(api.collaboration.participantHeartbeat);
 
   // Initialize code when session loads for the first time
   useEffect(() => {
@@ -76,20 +76,6 @@ export default function CollaborativeEditor({ sessionId, onLeaveSession }: Colla
       lastRemoteCode.current = session.code;
     }
   }, [session?.code]);
-
-  // Send heartbeat to keep participant active
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const heartbeatInterval = setInterval(() => {
-      participantHeartbeat({
-        sessionId,
-        userId: user.id,
-      }).catch(console.error);
-    }, 10000); // Every 10 seconds
-
-    return () => clearInterval(heartbeatInterval);
-  }, [sessionId, user?.id, participantHeartbeat]);
 
   // Handle remote code updates without interfering with local typing
   useEffect(() => {
@@ -314,6 +300,8 @@ export default function CollaborativeEditor({ sessionId, onLeaveSession }: Colla
               language={session.language}
               value={code}
               onChange={handleCodeChange}
+              theme="vs-dark"
+              beforeMount={defineMonacoThemes}
               onMount={(editor) => {
                 editorRef.current = editor;
                 
@@ -337,7 +325,6 @@ export default function CollaborativeEditor({ sessionId, onLeaveSession }: Colla
                   'semanticHighlighting.enabled': false,
                 });
               }}
-              theme="vs-dark"
               options={{
                 readOnly: !canEdit,
                 minimap: { enabled: false },
