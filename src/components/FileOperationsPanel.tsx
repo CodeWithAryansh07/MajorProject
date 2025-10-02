@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
+import toast from "react-hot-toast";
 import { 
   FileIcon, 
   TrashIcon, 
@@ -82,9 +83,9 @@ export default function FileOperationsPanel({
         await deleteFile({ fileId, userId: user.id });
       }
       onSelectionChange([]);
-      alert("Files deleted successfully!");
+      toast.success("Files deleted successfully!");
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Failed to delete files");
+      toast.error(error instanceof Error ? error.message : "Failed to delete files");
     }
   };
 
@@ -101,9 +102,9 @@ export default function FileOperationsPanel({
       }
       onSelectionChange([]);
       setShowMoveDialog(false);
-      alert("Files moved successfully!");
+      toast.success("Files moved successfully!");
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Failed to move files");
+      toast.error(error instanceof Error ? error.message : "Failed to move files");
     }
   };
 

@@ -164,4 +164,33 @@ export default defineSchema({
       .index("by_created_at", ["createdAt"])
       .index("by_updated_at", ["updatedAt"])
       .index("by_user_and_original_session", ["userId", "originalSessionId"]),
+
+    // Session-specific file system for collaborative sessions
+    sessionFolders: defineTable({
+        sessionId: v.id("collaborativeSessions"),
+        userId: v.string(), // Creator of the folder
+        name: v.string(),
+        parentFolderId: v.optional(v.id("sessionFolders")),
+        createdAt: v.number(),
+        path: v.string(), // full path like "/utils/helpers"
+    })
+        .index("by_session_id", ["sessionId"])
+        .index("by_parent_folder", ["parentFolderId"])
+        .index("by_session_and_parent", ["sessionId", "parentFolderId"]),
+
+    sessionFiles: defineTable({
+        sessionId: v.id("collaborativeSessions"),
+        userId: v.string(), // Creator of the file
+        folderId: v.optional(v.id("sessionFolders")),
+        name: v.string(),
+        language: v.string(),
+        code: v.string(),
+        description: v.optional(v.string()),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+        path: v.string(), // full file path
+    })
+        .index("by_session_id", ["sessionId"])
+        .index("by_folder_id", ["folderId"])
+        .index("by_session_and_folder", ["sessionId", "folderId"]),
 });

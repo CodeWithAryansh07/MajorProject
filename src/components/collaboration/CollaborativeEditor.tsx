@@ -1,20 +1,20 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { useUser } from '@clerk/nextjs';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
-import { Editor } from '@monaco-editor/react';
-import { defineMonacoThemes } from '../../app/(root)/_constants';
 import {
   UsersIcon,
   MessageSquareIcon,
   LogOutIcon,
-  PlayIcon,
-  SquareIcon,
+  FolderIcon,
+  FolderOpenIcon,
 } from 'lucide-react';
 import { ConfirmModal } from '../ui/Modal';
+import CollaborativeFileTree from './CollaborativeFileTree';
+import MultiSessionFileEditor from './MultiSessionFileEditor';
 import '../../styles/vscode-scrollbar.css';
 
 interface CollaborativeEditorProps {
@@ -24,34 +24,27 @@ interface CollaborativeEditorProps {
 
 export default function CollaborativeEditor({ sessionId, onLeaveSession }: CollaborativeEditorProps) {
   const { user } = useUser();
-  const [code, setCode] = useState('');
   const [showChat, setShowChat] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
   const [chatMessage, setChatMessage] = useState('');
-  const [isRunning, setIsRunning] = useState(false);
-  const [output, setOutput] = useState('');
-  const [error, setError] = useState('');
-  const [showOutput, setShowOutput] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [isClient, setIsClient] = useState(false);
   
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const editorRef = useRef<any>(null);
-  const updateTimeoutRef = useRef<NodeJS.Timeout>();
-  const isUpdatingFromRemote = useRef(false);
-  const lastRemoteCode = useRef<string>('');
+  // File system states
+  const [showFileExplorer, setShowFileExplorer] = useState(true);
+  const [selectedFileId, setSelectedFileId] = useState<Id<"sessionFiles"> | undefined>();
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Keyboard shortcut handler for Ctrl + ~ to toggle output
+  // Keyboard shortcut handler for Ctrl + B to toggle file explorer
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Check for Ctrl + ~ (backtick)
-      if (event.ctrlKey && event.key === '`') {
+      // Check for Ctrl + B to toggle file explorer
+      if (event.ctrlKey && event.key === 'b') {
         event.preventDefault();
-        setShowOutput(prev => !prev);
+        setShowFileExplorer(prev => !prev);
       }
     };
 
@@ -65,15 +58,7 @@ export default function CollaborativeEditor({ sessionId, onLeaveSession }: Colla
   }, []);
 
   // Language configurations for code execution
-  const LANGUAGE_CONFIG: Record<string, { pistonRuntime: { language: string; version: string } }> = {
-    javascript: { pistonRuntime: { language: 'javascript', version: '18.15.0' } },
-    typescript: { pistonRuntime: { language: 'typescript', version: '5.0.3' } },
-    python: { pistonRuntime: { language: 'python', version: '3.10.0' } },
-    java: { pistonRuntime: { language: 'java', version: '15.0.2' } },
-    cpp: { pistonRuntime: { language: 'cpp', version: '10.2.0' } },
-    go: { pistonRuntime: { language: 'go', version: '1.16.2' } },
-    rust: { pistonRuntime: { language: 'rust', version: '1.68.2' } },
-  };
+  // Moved to MultiSessionFileEditor where it's actually used
 
   // Queries
   const session = useQuery(
@@ -87,74 +72,8 @@ export default function CollaborativeEditor({ sessionId, onLeaveSession }: Colla
   );
 
   // Mutations
-  const updateSessionCode = useMutation(api.collaboration.updateSessionCode);
   const leaveSession = useMutation(api.collaboration.leaveSession);
   const sendChatMessage = useMutation(api.collaboration.sendChatMessage);
-
-  // Initialize code when session loads for the first time
-  useEffect(() => {
-    if (session?.code && !lastRemoteCode.current) {
-      setCode(session.code);
-      lastRemoteCode.current = session.code;
-    }
-  }, [session?.code]);
-
-  // Handle remote code updates without interfering with local typing
-  useEffect(() => {
-    if (session?.code && 
-        session.code !== lastRemoteCode.current && 
-        session.code !== code &&
-        !isUpdatingFromRemote.current) {
-      
-      // Only update if the remote code is significantly different
-      // This prevents overwriting local changes
-      const editor = editorRef.current;
-      if (editor) {
-        const position = editor.getPosition();
-        isUpdatingFromRemote.current = true;
-        
-        setCode(session.code);
-        lastRemoteCode.current = session.code;
-        
-        // Restore cursor position after a short delay
-        setTimeout(() => {
-          if (position && editor) {
-            editor.setPosition(position);
-          }
-          isUpdatingFromRemote.current = false;
-        }, 50);
-      } else {
-        setCode(session.code);
-        lastRemoteCode.current = session.code;
-      }
-    }
-  }, [session?.code, code]);
-
-  // Handle code changes with shorter debouncing for better real-time feel
-  const handleCodeChange = useCallback((value: string | undefined) => {
-    if (value === undefined || !user?.id || isUpdatingFromRemote.current) return;
-
-    setCode(value);
-
-    // Clear existing timeout
-    if (updateTimeoutRef.current) {
-      clearTimeout(updateTimeoutRef.current);
-    }
-
-    // Shorter debounce for more responsive collaboration
-    updateTimeoutRef.current = setTimeout(async () => {
-      try {
-        await updateSessionCode({
-          sessionId,
-          userId: user.id,
-          code: value,
-        });
-        lastRemoteCode.current = value;
-      } catch (error) {
-        console.error('Failed to update code:', error);
-      }
-    }, 300); // Reduced to 300ms for better responsiveness
-  }, [sessionId, user?.id, updateSessionCode]);
 
   // Handle leaving session
   const handleLeaveSession = async () => {
@@ -194,56 +113,6 @@ export default function CollaborativeEditor({ sessionId, onLeaveSession }: Colla
     }
   };
 
-  // Handle code execution
-  const handleRunCode = async () => {
-    if (!session || isRunning) return;
-
-    setIsRunning(true);
-    setError('');
-    setOutput('');
-    setShowOutput(true);
-
-    try {
-      const runtime = LANGUAGE_CONFIG[session.language]?.pistonRuntime;
-      if (!runtime) {
-        setError(`Language ${session.language} is not supported for execution`);
-        return;
-      }
-
-      const response = await fetch("https://emkc.org/api/v2/piston/execute", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          language: runtime.language,
-          version: runtime.version,
-          files: [{ content: code }],
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.message) {
-        setError(data.message);
-        return;
-      }
-
-      if (data.run) {
-        if (data.run.stdout) {
-          setOutput(data.run.stdout);
-        }
-        if (data.run.stderr) {
-          setError(data.run.stderr);
-        }
-      }
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Unknown error occurred');
-    } finally {
-      setIsRunning(false);
-    }
-  };
-
   const currentUserPermission = session?.participants?.find(p => p.userId === user?.id)?.permission || 'read';
   const canEdit = currentUserPermission === 'write';
 
@@ -275,25 +144,23 @@ export default function CollaborativeEditor({ sessionId, onLeaveSession }: Colla
         </div>
 
         <div className="flex items-center space-x-2">
-          {/* Run Code Button */}
+          {/* File Explorer Toggle */}
           <button
-            onClick={handleRunCode}
-            disabled={isRunning || !canEdit}
-            className="flex items-center space-x-1 px-3 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md transition-colors"
-            title="Run code (or use Ctrl + ~ to toggle output)"
+            onClick={() => setShowFileExplorer(!showFileExplorer)}
+            className={`flex items-center space-x-1 px-3 py-2 rounded-md transition-colors ${
+              showFileExplorer 
+                ? 'bg-[#007acc] text-white' 
+                : 'bg-[#3c3c3c] hover:bg-[#4c4c4c] text-white'
+            }`}
+            title="Toggle File Explorer (Ctrl + B)"
           >
-            {isRunning ? (
-              <SquareIcon className="w-4 h-4" />
+            {showFileExplorer ? (
+              <FolderOpenIcon className="w-4 h-4" />
             ) : (
-              <PlayIcon className="w-4 h-4" />
+              <FolderIcon className="w-4 h-4" />
             )}
-            <span>{isRunning ? 'Running...' : 'Run'}</span>
+            <span className="hidden sm:inline">Files</span>
           </button>
-
-          {/* Output Toggle Hint */}
-          {/* <span className="text-xs text-gray-400 hidden md:block">
-            Ctrl + ~ to toggle output
-          </span> */}
 
           {/* Participants Button */}
           <button
@@ -325,65 +192,43 @@ export default function CollaborativeEditor({ sessionId, onLeaveSession }: Colla
 
       {/* Main Content */}
       <div className="flex-1 flex relative">
-        {/* Editor */}
+        {/* File Explorer */}
+        {showFileExplorer && (
+          <CollaborativeFileTree
+            sessionId={sessionId}
+            onFileSelect={setSelectedFileId}
+            selectedFileId={selectedFileId}
+          />
+        )}
+
+        {/* Editor Area */}
         <div className="flex-1 flex flex-col">
-          <div className="flex-1">
-            <Editor
-              height="100%"
-              language={session.language}
-              value={code}
-              onChange={handleCodeChange}
-              theme="vs-dark"
-              beforeMount={defineMonacoThemes}
-              onMount={(editor) => {
-                editorRef.current = editor;
-                
-                // Optimize editor for collaborative editing
-                editor.updateOptions({
-                  readOnly: !canEdit,
-                  wordWrap: 'on',
-                  automaticLayout: true,
-                  scrollBeyondLastLine: false,
-                  minimap: { enabled: false },
-                  fontSize: 14,
-                  renderWhitespace: 'selection',
-                  bracketPairColorization: { enabled: true },
-                  // Performance optimizations for real-time collaboration
-                  quickSuggestions: false,
-                  suggestOnTriggerCharacters: false,
-                  acceptSuggestionOnEnter: 'off',
-                  tabCompletion: 'off',
-                  wordBasedSuggestions: 'off',
-                  // Reduce validation delays for better performance
-                  'semanticHighlighting.enabled': false,
-                });
-              }}
-              options={{
-                readOnly: !canEdit,
-                minimap: { enabled: false },
-                fontSize: 14,
-                wordWrap: 'on',
-                automaticLayout: true,
-                scrollBeyondLastLine: false,
-                renderWhitespace: 'selection',
-                bracketPairColorization: { enabled: true },
-                // Performance optimizations for collaborative editing
-                quickSuggestions: false,
-                suggestOnTriggerCharacters: false,
-                acceptSuggestionOnEnter: 'off',
-                tabCompletion: 'off',
-                wordBasedSuggestions: 'off',
-                parameterHints: { enabled: false },
-                hover: { enabled: false },
-                // Disable some features that can cause lag in collaborative mode
-                folding: false,
-                foldingHighlight: false,
-                unfoldOnClickAfterEndOfLine: false,
-                showUnused: false,
-                showDeprecated: false,
-              }}
+          {selectedFileId ? (
+            /* Multi-File Editor for session files */
+            <MultiSessionFileEditor
+              sessionId={sessionId}
+              selectedFileId={selectedFileId}
+              onFileClose={() => setSelectedFileId(undefined)}
             />
-          </div>
+          ) : (
+            /* No File Selected State - Similar to /files route */
+            <div className="flex-1 flex items-center justify-center bg-[#1e1e1e]">
+              <div className="text-center text-gray-400">
+                <div className="mb-4">
+                  <FolderIcon className="w-16 h-16 mx-auto text-gray-500" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-300 mb-2">
+                  No file selected
+                </h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Select a file from the explorer to start editing
+                </p>
+                <p className="text-xs text-gray-600">
+                  Tip: Press <kbd className="px-1 py-0.5 bg-[#3c3c3c] rounded text-gray-300">Ctrl + B</kbd> to toggle file explorer
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Participants Panel */}
@@ -493,50 +338,6 @@ export default function CollaborativeEditor({ sessionId, onLeaveSession }: Colla
           </div>
         )}
       </div>
-
-      {/* Fixed Output Panel */}
-      {showOutput && (
-        <div className="fixed bottom-0 left-0 right-0 h-64 bg-[#1e1e1e] border-t-2 border-[#333] flex flex-col z-50">
-          <div className="flex items-center justify-between p-3 border-b border-[#333] bg-[#252526]">
-            <div className="flex items-center space-x-2">
-              <h3 className="font-semibold text-white">Output</h3>
-              <span className="text-xs text-gray-400 hidden sm:block">
-                (Ctrl + ~ to toggle)
-              </span>
-            </div>
-            <button
-              onClick={() => setShowOutput(false)}
-              className="text-gray-400 hover:text-white text-xl font-bold w-6 h-6 flex items-center justify-center rounded hover:bg-[#3c3c3c] transition-colors"
-              title="Close output (or press Ctrl + ~)"
-            >
-              ×
-            </button>
-          </div>
-          <div className="flex-1 overflow-auto p-3 font-mono text-sm vscode-scrollbar">
-            {error && (
-              <div className="text-red-400 mb-2">
-                <strong>Error:</strong>
-                <pre className="mt-1 whitespace-pre-wrap">{error}</pre>
-              </div>
-            )}
-            {output && (
-              <div className="text-green-400">
-                <strong>Output:</strong>
-                <pre className="mt-1 whitespace-pre-wrap">{output}</pre>
-              </div>
-            )}
-            {!error && !output && !isRunning && (
-              <div className="text-gray-400">No output yet</div>
-            )}
-            {isRunning && (
-              <div className="text-blue-400 flex items-center">
-                <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full mr-2"></div>
-                Running code...
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Leave Session Confirmation Modal */}
       <ConfirmModal

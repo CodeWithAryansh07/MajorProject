@@ -6,6 +6,7 @@ import { useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Users, UserPlus } from 'lucide-react';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 
 interface CollaborationIntegrationProps {
   currentCode?: string;
@@ -43,7 +44,7 @@ export default function CollaborationIntegration({
       setShowModal(false);
     } catch (error) {
       console.error('Failed to create session:', error);
-      alert('Failed to create collaborative session. Please try again.');
+      toast.error('Failed to create collaborative session. Please try again.');
     } finally {
       setIsCreating(false);
     }

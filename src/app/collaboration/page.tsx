@@ -32,6 +32,19 @@ export default function CollaborationPage() {
 
   return (
     <div className="h-screen flex flex-col bg-[#1e1e1e]">
+      {/* Back Navigation */}
+      <div className="flex items-center p-2 bg-[#252526] border-b border-[#333]">
+        <button
+          onClick={() => router.push('/')}
+          className="flex items-center space-x-2 px-3 py-1.5 text-gray-300 hover:text-white hover:bg-[#3c3c3c] rounded-md transition-colors text-sm"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          <span>Back to Editor</span>
+        </button>
+      </div>
+
       {/* Tab Header */}
       <div className="border-b border-[#333] bg-[#1e1e1e]">
         <div className="max-w-6xl mx-auto px-4 py-3">

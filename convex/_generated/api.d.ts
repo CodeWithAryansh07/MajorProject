@@ -23,6 +23,8 @@ import type * as http from "../http.js";
 import type * as lemonSqueezy from "../lemonSqueezy.js";
 import type * as migration from "../migration.js";
 import type * as sessionActivity from "../sessionActivity.js";
+import type * as sessionFiles from "../sessionFiles.js";
+import type * as sessionFolders from "../sessionFolders.js";
 import type * as snippets from "../snippets.js";
 import type * as users from "../users.js";
 
@@ -45,6 +47,8 @@ declare const fullApi: ApiFromModules<{
   lemonSqueezy: typeof lemonSqueezy;
   migration: typeof migration;
   sessionActivity: typeof sessionActivity;
+  sessionFiles: typeof sessionFiles;
+  sessionFolders: typeof sessionFolders;
   snippets: typeof snippets;
   users: typeof users;
 }>;

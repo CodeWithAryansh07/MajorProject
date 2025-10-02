@@ -4,6 +4,7 @@ import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import ConvexClientProvider from "@/components/providers/ConvexClientProvider";
 import ToastProvider from "@/components/providers/ToastProvider";
+import { Toaster } from "react-hot-toast";
 
 import ConditionalFooter from "../components/ConditionalFooter"
 
@@ -36,6 +37,17 @@ export default function RootLayout({
         >
           <ConvexClientProvider>{children}</ConvexClientProvider>
           <ToastProvider />
+          <Toaster 
+            position="top-right"
+            toastOptions={{
+              duration: 3000,
+              style: {
+                background: '#1e1e1e',
+                border: '1px solid #333',
+                color: '#fff',
+              },
+            }}
+          />
           <ConditionalFooter />
         </body>
       </html>

@@ -1,6 +1,6 @@
 import HeaderProfileBtn from "@/app/(root)/_components/HeaderProfileBtn";
 import { SignedOut } from "@clerk/nextjs";
-import { Blocks, Code2, Sparkles, Users } from "lucide-react";
+import { Blocks, Folder, Sparkles, Users } from "lucide-react";
 import Link from "next/link";
 
 function NavigationHeader() {
@@ -36,37 +36,40 @@ function NavigationHeader() {
                             </div>
                         </Link>
 
-                        {/* Snippets Link */}
-                        <Link
-                            href="/snippets"
-                            className="relative group flex items-center gap-2 px-4 py-1.5 rounded-lg text-gray-300 bg-gray-800/50 hover:bg-blue-500/10 
-              border border-gray-800 hover:border-blue-500/50 transition-all duration-300 shadow-lg overflow-hidden"
-                        >
-                            <div
-                                className="absolute inset-0 bg-gradient-to-r from-blue-500/10 
-              to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                            />
-                            <Code2 className="w-4 h-4 relative z-10 group-hover:rotate-3 transition-transform" />
-                            <span className="text-sm font-medium relative z-10 group-hover:text-white transition-colors">
-                                Snippets
-                            </span>
-                        </Link>
+                        {/* Navigation Buttons */}
+                        <div className="flex items-center gap-3">
+                            {/* Files Link */}
+                            <Link
+                                href="/files"
+                                className="relative group flex items-center gap-2 px-4 py-1.5 rounded-lg text-gray-300 bg-gray-800/50 hover:bg-blue-500/10 
+                  border border-gray-800 hover:border-blue-500/50 transition-all duration-300 shadow-lg overflow-hidden"
+                            >
+                                <div
+                                    className="absolute inset-0 bg-gradient-to-r from-blue-500/10 
+                  to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                />
+                                <Folder className="w-4 h-4 relative z-10 group-hover:rotate-3 transition-transform" />
+                                <span className="text-sm font-medium relative z-10 group-hover:text-white transition-colors">
+                                    Files
+                                </span>
+                            </Link>
 
-                        {/* Collaboration Link */}
-                        <Link
-                            href="/collaboration"
-                            className="relative group flex items-center gap-2 px-4 py-1.5 rounded-lg text-gray-300 bg-gray-800/50 hover:bg-purple-500/10 
-              border border-gray-800 hover:border-purple-500/50 transition-all duration-300 shadow-lg overflow-hidden"
-                        >
-                            <div
-                                className="absolute inset-0 bg-gradient-to-r from-purple-500/10 
-              to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                            />
-                            <Users className="w-4 h-4 relative z-10 group-hover:scale-110 transition-transform" />
-                            <span className="text-sm font-medium relative z-10 group-hover:text-white transition-colors">
-                                Collaborate
-                            </span>
-                        </Link>
+                            {/* Collaboration Link */}
+                            <Link
+                                href="/collaboration"
+                                className="relative group flex items-center gap-2 px-4 py-1.5 rounded-lg text-gray-300 bg-gray-800/50 hover:bg-purple-500/10 
+                  border border-gray-800 hover:border-purple-500/50 transition-all duration-300 shadow-lg overflow-hidden"
+                            >
+                                <div
+                                    className="absolute inset-0 bg-gradient-to-r from-purple-500/10 
+                  to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                />
+                                <Users className="w-4 h-4 relative z-10 group-hover:scale-110 transition-transform" />
+                                <span className="text-sm font-medium relative z-10 group-hover:text-white transition-colors">
+                                    Collaborate
+                                </span>
+                            </Link>
+                        </div>
                     </div>
 
                     {/* right rection */}
