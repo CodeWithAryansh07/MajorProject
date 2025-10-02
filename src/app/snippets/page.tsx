@@ -5,6 +5,7 @@ import { api } from "../../../convex/_generated/api";
 import { useState } from "react";
 import SnippetsPageSkeleton from "./_components/SnippetsPageSkeleton";
 import NavigationHeader from "@/components/NavigationHeader";
+import Image from "next/image";
 
 import { AnimatePresence, motion } from "framer-motion";
 import { BookOpen, Code, Grid, Layers, Search, Tag, X } from "lucide-react";
@@ -113,7 +114,7 @@ function SnippetsPage() {
                   `}
                             >
                                 <div className="flex items-center gap-2">
-                                    <img src={`/${lang}.png`} alt={lang} className="w-4 h-4 object-contain" />
+                                    <Image src={`/${lang}.png`} alt={lang} width={16} height={16} className="object-contain" />
                                     <span className="text-sm">{lang}</span>
                                 </div>
                             </button>

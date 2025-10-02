@@ -325,7 +325,3 @@ export default function SessionManager({ onSessionSelect }: SessionManagerProps)
     </div>
   );
 }
-
-function useClientOnly() {
-    throw new Error('Function not implemented.');
-}
