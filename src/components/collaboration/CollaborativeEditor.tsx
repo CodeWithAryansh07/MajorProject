@@ -14,6 +14,7 @@ import {
   PlayIcon,
   SquareIcon,
 } from 'lucide-react';
+import { ConfirmModal } from '../ui/Modal';
 
 interface CollaborativeEditorProps {
   sessionId: Id<"collaborativeSessions">;
@@ -30,6 +31,7 @@ export default function CollaborativeEditor({ sessionId, onLeaveSession }: Colla
   const [output, setOutput] = useState('');
   const [error, setError] = useState('');
   const [showOutput, setShowOutput] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [isClient, setIsClient] = useState(false);
   
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -137,17 +139,22 @@ export default function CollaborativeEditor({ sessionId, onLeaveSession }: Colla
   // Handle leaving session
   const handleLeaveSession = async () => {
     if (!user?.id) return;
+    setShowLeaveConfirm(true);
+  };
 
-    if (confirm('Are you sure you want to leave this session?')) {
-      try {
-        await leaveSession({
-          sessionId,
-          userId: user.id,
-        });
-        onLeaveSession();
-      } catch (error) {
-        console.error('Failed to leave session:', error);
-      }
+  const confirmLeaveSession = async () => {
+    if (!user?.id) return;
+    
+    try {
+      await leaveSession({
+        sessionId,
+        userId: user.id,
+      });
+      onLeaveSession();
+    } catch (error) {
+      console.error('Failed to leave session:', error);
+    } finally {
+      setShowLeaveConfirm(false);
     }
   };
 
@@ -480,6 +487,17 @@ export default function CollaborativeEditor({ sessionId, onLeaveSession }: Colla
           </div>
         )}
       </div>
+
+      {/* Leave Session Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showLeaveConfirm}
+        onClose={() => setShowLeaveConfirm(false)}
+        onConfirm={confirmLeaveSession}
+        title="Leave Session"
+        message="Are you sure you want to leave this collaborative session? Any unsaved changes will be lost."
+        confirmText="Leave Session"
+        type="danger"
+      />
     </div>
   );
 }

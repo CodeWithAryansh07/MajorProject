@@ -10,13 +10,20 @@ import HeaderProfileBtn from "./HeaderProfileBtn";
 import HeaderShareButton from "./HeaderShareButton";
 
 async function Header() {
-
-    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
     const user = await currentUser();
-
-    const convexUser = await convex.query(api.users.getUser, {
-        userId: user?.id || "",
-    });
+    
+    let convexUser = null;
+    
+    if (user?.id) {
+        const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+        try {
+            convexUser = await convex.query(api.users.getUser, {
+                userId: user.id,
+            });
+        } catch (error) {
+            console.error("Error fetching convex user:", error);
+        }
+    }
 
     // console.log({ convexUser })
 

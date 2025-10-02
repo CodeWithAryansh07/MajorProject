@@ -78,6 +78,7 @@ export default defineSchema({
         sessionKey: v.string(), // URL-friendly unique identifier
         language: v.string(),
         code: v.string(),
+        description: v.optional(v.string()), // Session description
         isPublic: v.boolean(),
         isActive: v.boolean(),
         activeUsers: v.array(v.string()),
@@ -86,13 +87,21 @@ export default defineSchema({
         lastActivity: v.number(),
         status: v.optional(v.union(v.literal("active"), v.literal("inactive"), v.literal("scheduled_for_deletion"))),
         expiresAt: v.optional(v.number()),
+        originalSavedSessionId: v.optional(v.id("savedSessions")), // Reference to saved session if loaded from one
+        // Additional session settings
+        sessionSettings: v.optional(v.object({
+            allowGuests: v.optional(v.boolean()),
+            autoSave: v.optional(v.boolean()),
+            theme: v.optional(v.string()),
+        })),
     })
         .index("by_creator_id", ["creatorId"])
         .index("by_is_public", ["isPublic"])
         .index("by_is_active", ["isActive"])
         .index("by_status", ["status"])
         .index("by_expires_at", ["expiresAt"])
-        .index("by_session_key", ["sessionKey"]),
+        .index("by_session_key", ["sessionKey"])
+        .index("by_original_saved_session", ["originalSavedSessionId"]),
 
     sessionParticipants: defineTable({
         sessionId: v.id("collaborativeSessions"),
@@ -131,4 +140,28 @@ export default defineSchema({
         message: v.string(),
         timestamp: v.number(),
     }).index("by_session_id", ["sessionId"]),
+
+    // Saved sessions - persistent user sessions
+    savedSessions: defineTable({
+        userId: v.string(),
+        originalSessionId: v.optional(v.id("collaborativeSessions")), // Track original session
+        name: v.string(),
+        language: v.string(),
+        code: v.string(),
+        description: v.optional(v.string()),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+        tags: v.optional(v.array(v.string())),
+        isPrivate: v.boolean(),
+        // Session metadata to preserve when loading
+        maxUsers: v.optional(v.number()), // Maximum users allowed in the session
+        sessionSettings: v.optional(v.object({
+            allowGuests: v.optional(v.boolean()),
+            autoSave: v.optional(v.boolean()),
+            theme: v.optional(v.string()),
+        })),
+    }).index("by_user_id", ["userId"])
+      .index("by_created_at", ["createdAt"])
+      .index("by_updated_at", ["updatedAt"])
+      .index("by_user_and_original_session", ["userId", "originalSessionId"]),
 });

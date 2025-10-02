@@ -25,14 +25,14 @@ export default function FilesPage() {
   return (
     <div className="h-screen flex bg-[#0a0a0f]">
       {/* Keyboard Shortcuts */}
-      <KeyboardShortcuts 
+      <KeyboardShortcuts
         onSearchOpen={() => setShowSearch(true)}
         onOperationsOpen={() => setShowOperations(true)}
       />
 
       {/* File Tree Sidebar */}
-      <FileTree 
-        onFileSelect={handleFileSelect} 
+      <FileTree
+        onFileSelect={handleFileSelect}
         selectedFileId={selectedFileId}
         onSearchOpen={() => setShowSearch(true)}
         onOperationsOpen={() => setShowOperations(true)}
@@ -40,15 +40,15 @@ export default function FilesPage() {
 
       {/* Main Editor Area */}
       <div className="flex-1">
-        <MultiFileEditor 
-          selectedFileId={selectedFileId} 
+        <MultiFileEditor
+          selectedFileId={selectedFileId}
           onFileClose={handleFileClose}
         />
       </div>
 
       {/* Search Overlay */}
       {showSearch && (
-        <SearchResults 
+        <SearchResults
           onFileSelect={handleFileSelect}
           onClose={() => setShowSearch(false)}
         />
