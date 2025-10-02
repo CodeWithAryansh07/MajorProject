@@ -15,6 +15,7 @@ import {
   SquareIcon,
 } from 'lucide-react';
 import { ConfirmModal } from '../ui/Modal';
+import '../../styles/vscode-scrollbar.css';
 
 interface CollaborativeEditorProps {
   sessionId: Id<"collaborativeSessions">;
@@ -42,6 +43,25 @@ export default function CollaborativeEditor({ sessionId, onLeaveSession }: Colla
 
   useEffect(() => {
     setIsClient(true);
+  }, []);
+
+  // Keyboard shortcut handler for Ctrl + ~ to toggle output
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Check for Ctrl + ~ (backtick)
+      if (event.ctrlKey && event.key === '`') {
+        event.preventDefault();
+        setShowOutput(prev => !prev);
+      }
+    };
+
+    // Add event listener
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup function
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   // Language configurations for code execution
@@ -260,6 +280,7 @@ export default function CollaborativeEditor({ sessionId, onLeaveSession }: Colla
             onClick={handleRunCode}
             disabled={isRunning || !canEdit}
             className="flex items-center space-x-1 px-3 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md transition-colors"
+            title="Run code (or use Ctrl + ~ to toggle output)"
           >
             {isRunning ? (
               <SquareIcon className="w-4 h-4" />
@@ -268,6 +289,11 @@ export default function CollaborativeEditor({ sessionId, onLeaveSession }: Colla
             )}
             <span>{isRunning ? 'Running...' : 'Run'}</span>
           </button>
+
+          {/* Output Toggle Hint */}
+          {/* <span className="text-xs text-gray-400 hidden md:block">
+            Ctrl + ~ to toggle output
+          </span> */}
 
           {/* Participants Button */}
           <button
@@ -298,7 +324,7 @@ export default function CollaborativeEditor({ sessionId, onLeaveSession }: Colla
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex">
+      <div className="flex-1 flex relative">
         {/* Editor */}
         <div className="flex-1 flex flex-col">
           <div className="flex-1">
@@ -358,47 +384,21 @@ export default function CollaborativeEditor({ sessionId, onLeaveSession }: Colla
               }}
             />
           </div>
-
-          {/* Output Panel */}
-          {showOutput && (
-            <div className="h-64 border-t border-[#333] bg-[#1e1e1e] flex flex-col">
-              <div className="flex items-center justify-between p-3 border-b border-[#333]">
-                <h3 className="font-semibold text-white">Output</h3>
-                <button
-                  onClick={() => setShowOutput(false)}
-                  className="text-gray-400 hover:text-white"
-                >
-                  ×
-                </button>
-              </div>
-              <div className="flex-1 overflow-auto p-3 font-mono text-sm">
-                {error && (
-                  <div className="text-red-400 mb-2">
-                    <strong>Error:</strong>
-                    <pre className="mt-1 whitespace-pre-wrap">{error}</pre>
-                  </div>
-                )}
-                {output && (
-                  <div className="text-green-400">
-                    <strong>Output:</strong>
-                    <pre className="mt-1 whitespace-pre-wrap">{output}</pre>
-                  </div>
-                )}
-                {!error && !output && !isRunning && (
-                  <div className="text-gray-400">No output yet</div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Participants Panel */}
         {showParticipants && (
-          <div className="w-64 border-l border-[#333] bg-[#252526] flex flex-col">
-            <div className="p-3 border-b border-[#333]">
+          <div className={`fixed top-16 right-4 w-64 h-80 border border-[#333] bg-[#252526] flex flex-col z-60 rounded-lg shadow-lg ${showChat ? 'right-[340px]' : 'right-4'}`}>
+            <div className="p-3 border-b border-[#333] flex items-center justify-between">
               <h3 className="font-semibold text-white">Participants</h3>
+              <button
+                onClick={() => setShowParticipants(false)}
+                className="text-gray-400 hover:text-white text-lg font-bold w-5 h-5 flex items-center justify-center rounded hover:bg-[#3c3c3c] transition-colors"
+              >
+                ×
+              </button>
             </div>
-            <div className="flex-1 overflow-auto p-3">
+            <div className="flex-1 overflow-auto p-3 vscode-scrollbar">
               <div className="space-y-2">
                 {session.participants?.map((participant) => (
                   <div
@@ -430,13 +430,19 @@ export default function CollaborativeEditor({ sessionId, onLeaveSession }: Colla
 
         {/* Chat Panel */}
         {showChat && (
-          <div className="w-80 border-l border-[#333] bg-[#252526] flex flex-col">
-            <div className="p-3 border-b border-[#333]">
+          <div className="fixed top-16 right-4 w-80 h-96 border border-[#333] bg-[#252526] flex flex-col z-60 rounded-lg shadow-lg">
+            <div className="p-3 border-b border-[#333] flex items-center justify-between">
               <h3 className="font-semibold text-white">Chat</h3>
+              <button
+                onClick={() => setShowChat(false)}
+                className="text-gray-400 hover:text-white text-lg font-bold w-5 h-5 flex items-center justify-center rounded hover:bg-[#3c3c3c] transition-colors"
+              >
+                ×
+              </button>
             </div>
             
             {/* Messages */}
-            <div className="flex-1 overflow-auto p-3 space-y-2">
+            <div className="flex-1 overflow-auto p-3 space-y-2 vscode-scrollbar">
               {chatMessages?.map((message) => (
                 <div key={`${message._id}-${message.timestamp}`} className="text-sm">
                   <div className="flex items-center space-x-1 mb-1">
@@ -487,6 +493,50 @@ export default function CollaborativeEditor({ sessionId, onLeaveSession }: Colla
           </div>
         )}
       </div>
+
+      {/* Fixed Output Panel */}
+      {showOutput && (
+        <div className="fixed bottom-0 left-0 right-0 h-64 bg-[#1e1e1e] border-t-2 border-[#333] flex flex-col z-50">
+          <div className="flex items-center justify-between p-3 border-b border-[#333] bg-[#252526]">
+            <div className="flex items-center space-x-2">
+              <h3 className="font-semibold text-white">Output</h3>
+              <span className="text-xs text-gray-400 hidden sm:block">
+                (Ctrl + ~ to toggle)
+              </span>
+            </div>
+            <button
+              onClick={() => setShowOutput(false)}
+              className="text-gray-400 hover:text-white text-xl font-bold w-6 h-6 flex items-center justify-center rounded hover:bg-[#3c3c3c] transition-colors"
+              title="Close output (or press Ctrl + ~)"
+            >
+              ×
+            </button>
+          </div>
+          <div className="flex-1 overflow-auto p-3 font-mono text-sm vscode-scrollbar">
+            {error && (
+              <div className="text-red-400 mb-2">
+                <strong>Error:</strong>
+                <pre className="mt-1 whitespace-pre-wrap">{error}</pre>
+              </div>
+            )}
+            {output && (
+              <div className="text-green-400">
+                <strong>Output:</strong>
+                <pre className="mt-1 whitespace-pre-wrap">{output}</pre>
+              </div>
+            )}
+            {!error && !output && !isRunning && (
+              <div className="text-gray-400">No output yet</div>
+            )}
+            {isRunning && (
+              <div className="text-blue-400 flex items-center">
+                <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full mr-2"></div>
+                Running code...
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Leave Session Confirmation Modal */}
       <ConfirmModal

@@ -144,13 +144,22 @@ export default function SessionPage() {
   console.log('Rendering CollaborativeEditor with session:', session._id);
   
   return (
-    <div className="h-screen bg-[#1e1e1e]">
-      {/* Debug info bar (remove in production) */}
-      {/* <div className="bg-green-600 text-white px-4 py-1 text-xs">
-        Session: {session.name} | Key: {sessionId} | Creator: {session.creatorId} | Public: {session.isPublic ? 'Yes' : 'No'}
-      </div> */}
+    <div className="h-screen bg-[#1e1e1e] flex flex-col">
+      {/* Go Back Button */}
+      <div className="flex items-center p-2 bg-[#252526] border-b border-[#333]">
+        <button
+          onClick={() => router.push('/collaboration')}
+          className="flex items-center space-x-2 px-3 py-1.5 text-gray-300 hover:text-white hover:bg-[#3c3c3c] rounded-md transition-colors text-sm"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          <span>Back to Collaboration</span>
+        </button>
+      </div>
       
-      <div className="h-[calc(100vh-2rem)]">
+      {/* Collaborative Editor */}
+      <div className="flex-1">
         <CollaborativeEditor
           sessionId={session._id}
           onLeaveSession={handleLeaveSession}

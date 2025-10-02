@@ -5,7 +5,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import ConvexClientProvider from "@/components/providers/ConvexClientProvider";
 import ToastProvider from "@/components/providers/ToastProvider";
 
-import Footer from "../components/Footer"
+import ConditionalFooter from "../components/ConditionalFooter"
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -36,7 +36,7 @@ export default function RootLayout({
         >
           <ConvexClientProvider>{children}</ConvexClientProvider>
           <ToastProvider />
-          <Footer />
+          <ConditionalFooter />
         </body>
       </html>
     </ClerkProvider>

@@ -1,0 +1,43 @@
+/* VS Code style scrollbars */
+.vscode-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #424242 #1e1e1e;
+}
+
+.vscode-scrollbar::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+.vscode-scrollbar::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+.vscode-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #424242;
+  border-radius: 0;
+  border: 3px solid #1e1e1e;
+}
+
+.vscode-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #4f4f4f;
+}
+
+.vscode-scrollbar::-webkit-scrollbar-thumb:active {
+  background-color: #555555;
+}
+
+.vscode-scrollbar::-webkit-scrollbar-corner {
+  background: #1e1e1e;
+}
+
+/* Horizontal scrollbar */
+.vscode-scrollbar::-webkit-scrollbar:horizontal {
+  height: 14px;
+}
+
+.vscode-scrollbar::-webkit-scrollbar-thumb:horizontal {
+  background-color: #424242;
+  border-radius: 0;
+  border: 3px solid #1e1e1e;
+}
