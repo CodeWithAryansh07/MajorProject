@@ -12,12 +12,12 @@ export const getSessionFile = query({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity || identity.subject !== args.userId) {
-      throw new Error("Unauthorized");
+      return null; // Return null instead of throwing error for unauthorized access
     }
 
     const file = await ctx.db.get(args.fileId);
     if (!file || file.sessionId !== args.sessionId) {
-      throw new Error("File not found");
+      return null; // Return null instead of throwing error for missing/wrong file
     }
 
     return file;

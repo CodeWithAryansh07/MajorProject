@@ -154,6 +154,25 @@ export default function MultiSessionFileEditor({
 
   // Update tabs when activeFile data is loaded
   useEffect(() => {
+    if (!activeTabId) return;
+
+    // Handle case where file was not found or access denied
+    if (activeFile === null) {
+      console.warn(`File ${activeTabId} not found or access denied`);
+      // Remove the tab since the file doesn't exist or user doesn't have access
+      setTabs(prevTabs => prevTabs.filter(tab => tab.fileId !== activeTabId));
+      
+      // Clear active tab
+      const remainingTabs = tabs.filter(tab => tab.fileId !== activeTabId);
+      if (remainingTabs.length > 0) {
+        setActiveTabId(remainingTabs[remainingTabs.length - 1].fileId);
+      } else {
+        setActiveTabId(null);
+        onFileClose?.();
+      }
+      return;
+    }
+
     if (activeFile && activeTabId) {
       setTabs(prevTabs => {
         const existingTabIndex = prevTabs.findIndex(tab => tab.fileId === activeTabId);
@@ -184,7 +203,7 @@ export default function MultiSessionFileEditor({
         }
       });
     }
-  }, [activeFile, activeTabId]);
+  }, [activeFile, activeTabId, tabs, onFileClose]);
 
   const closeTab = (fileId: Id<"sessionFiles">, event?: React.MouseEvent) => {
     if (event) {
