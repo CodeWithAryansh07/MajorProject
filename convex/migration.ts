@@ -1,3 +1,4 @@
+// DOCUMENTED BY SCRIPT - Phase 2
 import { internalMutation } from "./_generated/server";
 
 // Migration script to update existing sessions with new fields

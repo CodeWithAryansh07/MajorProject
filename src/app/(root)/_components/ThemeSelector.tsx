@@ -1,3 +1,4 @@
+// DOCUMENTED BY SCRIPT - Phase 4
 "use client";
 
 import { useCodeEditorStore } from "@/store/useCodeEditorStore";

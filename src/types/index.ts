@@ -1,3 +1,4 @@
+// DOCUMENTED BY SCRIPT - Phase 1
 import { Monaco } from "@monaco-editor/react";
 import { Id } from "../../convex/_generated/dataModel";
 

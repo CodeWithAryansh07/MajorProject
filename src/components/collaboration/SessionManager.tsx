@@ -1,3 +1,4 @@
+// DOCUMENTED BY SCRIPT - Phase 4
 'use client';
 
 import { useState, useEffect } from 'react';

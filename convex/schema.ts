@@ -1,3 +1,4 @@
+// DOCUMENTED BY SCRIPT - Phase 1
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 

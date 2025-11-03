@@ -1,3 +1,4 @@
+// DOCUMENTED BY SCRIPT - Phase 3
 import { clerkMiddleware } from "@clerk/nextjs/server";
 
 export default clerkMiddleware();

@@ -1,3 +1,4 @@
+// DOCUMENTED BY SCRIPT - Phase 1
 /* eslint-disable */
 /**
  * Generated data model types.
